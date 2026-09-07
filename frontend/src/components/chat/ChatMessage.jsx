@@ -3,13 +3,16 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { User, Sparkles, Copy, Check, RefreshCw, Volume2, FileText } from "lucide-react";
+import { User, Sparkles, Copy, Check, RefreshCw, Volume2, VolumeX, FileText } from "lucide-react";
 import MermaidRenderer from "../ui/MermaidRenderer";
-import useThemeStore, { CHAT_THEMES } from "../../stores/themeStore";
+import useThemeStore from "../../stores/themeStore";
+import useSettingsStore from "../../stores/settingsStore";
+import { speakText, stopSpeech } from "../../lib/speechUtils";
 
 export default function ChatMessage({ message, onRegenerate }) {
   const [copied, setCopied] = useState(false);
   const [codeCopiedIndex, setCodeCopiedIndex] = useState(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const { outputTheme } = useThemeStore();
 
   const isUser = message.role === "user";
@@ -144,27 +147,34 @@ export default function ChatMessage({ message, onRegenerate }) {
 
             <button
               onClick={() => {
-                if ("speechSynthesis" in window) {
-                  if (window.speechSynthesis.speaking) {
-                    window.speechSynthesis.cancel();
-                  } else {
-                    const utterance = new SpeechSynthesisUtterance(message.content.replace(/```[\s\S]*?```/g, "Code block omitted."));
-                    utterance.rate = 1.0;
-                    const { selectedVoice } = useSettingsStore.getState();
-                    if (selectedVoice) {
-                      const avail = window.speechSynthesis.getVoices();
-                      const match = avail.find(v => v.voiceURI === selectedVoice || v.name === selectedVoice);
-                      if (match) utterance.voice = match;
-                    }
-                    window.speechSynthesis.speak(utterance);
-                  }
+                if (isSpeaking) {
+                  stopSpeech();
+                  setIsSpeaking(false);
+                } else {
+                  const { selectedVoice } = useSettingsStore.getState();
+                  const success = speakText(
+                    message.content,
+                    selectedVoice,
+                    () => setIsSpeaking(false),
+                    () => setIsSpeaking(false)
+                  );
+                  if (success) setIsSpeaking(true);
                 }
               }}
-              className="btn-pill-base btn-pill-secondary !h-7 !px-2.5 !text-[11px]"
-              title="Listen to response (Text-to-Speech)"
+              className={`btn-pill-base ${isSpeaking ? "btn-pill-security animate-pulse" : "btn-pill-secondary"} !h-7 !px-2.5 !text-[11px]`}
+              title={isSpeaking ? "Stop audio playback" : "Listen to response (Text-to-Speech)"}
             >
-              <Volume2 className="w-3 h-3 text-[#818cf8]" />
-              <span>Listen</span>
+              {isSpeaking ? (
+                <>
+                  <VolumeX className="w-3 h-3 text-[#f87171]" />
+                  <span className="text-[#f87171]">Stop</span>
+                </>
+              ) : (
+                <>
+                  <Volume2 className="w-3 h-3 text-[#818cf8]" />
+                  <span>Listen</span>
+                </>
+              )}
             </button>
 
             <button
