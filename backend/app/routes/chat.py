@@ -16,6 +16,15 @@ from ..models.schemas import (
     AuditRequest,
     AuditResponse,
     AuditVulnerability,
+    LogAuditRequest,
+    LogAuditResponse,
+    LogAnomalyItem,
+    DevOpsAuditRequest,
+    DevOpsAuditResponse,
+    DevOpsIssueItem,
+    NmapRequest,
+    NmapResponse,
+    NmapFlagItem,
     AIModel,
     ExplainMode
 )
@@ -23,6 +32,99 @@ from ..services.gemini_service import gemini_service
 from ..services.image_service import image_service
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
+
+
+@router.post("/analyze-log", response_model=LogAuditResponse)
+async def analyze_log(request: LogAuditRequest):
+    """Analyze server / firewall logs for security anomalies and intrusion patterns."""
+    try:
+        result = await gemini_service.analyze_log(
+            log_content=request.log_content,
+            log_type=request.log_type
+        )
+        
+        anomalies = [
+            LogAnomalyItem(
+                type=item.get("type", "Log Anomaly"),
+                severity=item.get("severity", "MEDIUM"),
+                source_ip=item.get("source_ip"),
+                count=item.get("count"),
+                details=item.get("details", ""),
+                remediation=item.get("remediation", "")
+            )
+            for item in result.get("anomalies", [])
+        ]
+        
+        return LogAuditResponse(
+            summary=result.get("summary", "Log analysis complete."),
+            threat_level=result.get("threat_level", "LOW"),
+            threat_score=result.get("threat_score", 0),
+            anomalies=anomalies,
+            top_ips=result.get("top_ips", []),
+            recommendations=result.get("recommendations", []),
+            processing_time=result.get("processing_time", 0.0)
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Log audit error: {str(e)}")
+
+
+@router.post("/audit-devops", response_model=DevOpsAuditResponse)
+async def audit_devops(request: DevOpsAuditRequest):
+    """Audit Dockerfile or Kubernetes YAML manifests for container security compliance."""
+    try:
+        result = await gemini_service.audit_devops(
+            manifest_content=request.manifest_content,
+            file_type=request.file_type
+        )
+        
+        security_issues = [
+            DevOpsIssueItem(
+                cwe=issue.get("cwe", "CWE-250"),
+                title=issue.get("title", "DevOps Security Issue"),
+                severity=issue.get("severity", "MEDIUM"),
+                rule=issue.get("rule", "Security Best Practice"),
+                description=issue.get("description", ""),
+                fix=issue.get("fix", "")
+            )
+            for issue in result.get("security_issues", [])
+        ]
+        
+        return DevOpsAuditResponse(
+            summary=result.get("summary", "DevOps audit completed."),
+            compliance_score=result.get("compliance_score", 100),
+            security_issues=security_issues,
+            remediated_manifest=result.get("remediated_manifest", request.manifest_content),
+            processing_time=result.get("processing_time", 0.0)
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"DevOps audit error: {str(e)}")
+
+
+@router.post("/generate-nmap", response_model=NmapResponse)
+async def generate_nmap(request: NmapRequest):
+    """Generate optimized Nmap syntax with flag breakdown and safety guidance."""
+    try:
+        result = await gemini_service.generate_nmap(
+            target=request.target,
+            scan_type=request.scan_type,
+            custom_ports=request.custom_ports
+        )
+        
+        breakdown = [
+            NmapFlagItem(flag=b.get("flag", ""), meaning=b.get("meaning", ""))
+            for b in result.get("breakdown", [])
+        ]
+        
+        return NmapResponse(
+            command=result.get("command", f"nmap {request.target}"),
+            explanation=result.get("explanation", "Nmap scan command."),
+            breakdown=breakdown,
+            safety_note=result.get("safety_note", "Ensure authorization."),
+            processing_time=result.get("processing_time", 0.0)
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Nmap generator error: {str(e)}")
+
 
 
 @router.post("/audit", response_model=AuditResponse)

@@ -1,20 +1,29 @@
 import React, { useState } from "react";
-import { Menu, Settings, ShieldAlert, Wrench, Award, Info, Palette, Sun, Moon } from "lucide-react";
+import { Menu, Settings, ShieldAlert, Wrench, Award, Info, Palette, Sun, Moon, Activity, Box, Terminal, BookOpen } from "lucide-react";
 import SettingsModal from "../modals/SettingsModal";
 import SecurityAuditModal from "../modals/SecurityAuditModal";
 import CyberUtilsModal from "../modals/CyberUtilsModal";
 import QuizHubModal from "../modals/QuizHubModal";
 import AboutModal from "../modals/AboutModal";
+import LogAuditModal from "../modals/LogAuditModal";
+import DevOpsAuditModal from "../modals/DevOpsAuditModal";
+import NmapBuilderModal from "../modals/NmapBuilderModal";
+import PromptLibraryModal from "../modals/PromptLibraryModal";
 import useSettingsStore from "../../stores/settingsStore";
 import useThemeStore, { THEME_PRESETS } from "../../stores/themeStore";
 import useChatStore from "../../stores/chatStore";
 
-export default function Header({ onMenuClick }) {
+export default function Header({ onMenuClick, onSelectPrompt }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [showUtilsModal, setShowUtilsModal] = useState(false);
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
+
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [showDevOpsModal, setShowDevOpsModal] = useState(false);
+  const [showNmapModal, setShowNmapModal] = useState(false);
+  const [showPromptModal, setShowPromptModal] = useState(false);
 
   const { model, explanationMode, setModel, theme, toggleTheme } = useSettingsStore();
   const { themePreset, setThemePreset } = useThemeStore();
@@ -38,7 +47,7 @@ export default function Header({ onMenuClick }) {
           </button>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-[var(--text-primary)] truncate max-w-[200px] sm:max-w-[320px]">
+            <span className="text-xs font-semibold text-[var(--text-primary)] truncate max-w-[180px] sm:max-w-[280px]">
               {title}
             </span>
           </div>
@@ -64,27 +73,67 @@ export default function Header({ onMenuClick }) {
             </span>
           </div>
 
-          {/* Secondary Action: Quiz Hub */}
+          {/* Prompt Templates */}
+          <button
+            onClick={() => setShowPromptModal(true)}
+            className="btn-pill-base btn-pill-secondary hidden 2xl:inline-flex"
+            title="Prompt Engineering Templates Library"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-[#818cf8]" />
+            <span>Prompts</span>
+          </button>
+
+          {/* Log SIEM Analyzer */}
+          <button
+            onClick={() => setShowLogModal(true)}
+            className="btn-pill-base btn-pill-secondary hidden xl:inline-flex"
+            title="SIEM Log & Intrusion Analyzer"
+          >
+            <Activity className="w-3.5 h-3.5 text-[#fbbf24]" />
+            <span>Log Audit</span>
+          </button>
+
+          {/* DevOps Container Hardening */}
+          <button
+            onClick={() => setShowDevOpsModal(true)}
+            className="btn-pill-base btn-pill-secondary hidden xl:inline-flex"
+            title="Docker & Kubernetes Security Inspector"
+          >
+            <Box className="w-3.5 h-3.5 text-[#38bdf8]" />
+            <span>DevOps</span>
+          </button>
+
+          {/* Nmap Builder */}
+          <button
+            onClick={() => setShowNmapModal(true)}
+            className="btn-pill-base btn-pill-secondary hidden lg:inline-flex"
+            title="Nmap & Network Command Builder"
+          >
+            <Terminal className="w-3.5 h-3.5 text-[#818cf8]" />
+            <span>Nmap</span>
+          </button>
+
+          {/* Quiz Hub */}
           <button
             onClick={() => setShowQuizModal(true)}
             className="btn-pill-base btn-pill-secondary hidden lg:inline-flex"
             title="Interactive Exam & Practice Quiz Hub"
           >
             <Award className="w-3.5 h-3.5 text-[#818cf8]" />
-            <span>Quiz Hub</span>
+            <span>Quiz</span>
           </button>
 
-          {/* Secondary Action: Cyber Tools */}
+          {/* Cyber Tools */}
           <button
             onClick={() => setShowUtilsModal(true)}
-            className="btn-pill-base btn-pill-secondary hidden lg:inline-flex"
+            className="btn-pill-base btn-pill-secondary hidden md:inline-flex"
             title="Open Network Subnet CIDR Calculator & JWT Decoder"
           >
             <Wrench className="w-3.5 h-3.5 text-[#38bdf8]" />
             <span>Cyber Tools</span>
           </button>
 
-          {/* Danger / Security Action: Security Audit */}
+          {/* Code Security Audit */}
           <button
             onClick={() => setShowAuditModal(true)}
             className="btn-pill-base btn-pill-security"
@@ -94,7 +143,7 @@ export default function Header({ onMenuClick }) {
             <span className="hidden md:inline">Security Audit</span>
           </button>
 
-          {/* Dedicated Mode Toggle Button */}
+          {/* Mode Toggle Button */}
           <button
             onClick={toggleTheme}
             aria-label="Toggle Mode"
@@ -114,7 +163,7 @@ export default function Header({ onMenuClick }) {
             )}
           </button>
 
-          {/* Multi-Theme Selector Pill */}
+          {/* Theme Palette Pill */}
           <div className="btn-pill-base btn-pill-secondary hidden xl:inline-flex !px-2.5">
             <Palette className="w-3.5 h-3.5 text-[#818cf8]" />
             <select
@@ -131,7 +180,7 @@ export default function Header({ onMenuClick }) {
             </select>
           </div>
 
-          {/* Tertiary Icon Buttons: Information & Settings */}
+          {/* Info & Settings */}
           <button
             onClick={() => setShowAboutModal(true)}
             aria-label="About AhadNova AI"
@@ -157,6 +206,11 @@ export default function Header({ onMenuClick }) {
       {showUtilsModal && <CyberUtilsModal onClose={() => setShowUtilsModal(false)} />}
       {showQuizModal && <QuizHubModal onClose={() => setShowQuizModal(false)} />}
       {showAboutModal && <AboutModal onClose={() => setShowAboutModal(false)} />}
+
+      {showLogModal && <LogAuditModal onClose={() => setShowLogModal(false)} />}
+      {showDevOpsModal && <DevOpsAuditModal onClose={() => setShowDevOpsModal(false)} />}
+      {showNmapModal && <NmapBuilderModal onClose={() => setShowNmapModal(false)} />}
+      {showPromptModal && <PromptLibraryModal onClose={() => setShowPromptModal(false)} onSelectPrompt={onSelectPrompt} />}
     </>
   );
 }

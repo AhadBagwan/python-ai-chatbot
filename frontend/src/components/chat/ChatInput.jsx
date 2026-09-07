@@ -1,10 +1,18 @@
-import React, { useState, useRef } from "react";
-import { Send, Paperclip, X, Mic, MicOff } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { Send, Paperclip, X, Mic, MicOff, FileText } from "lucide-react";
 import toast from "react-hot-toast";
 
-export default function ChatInput({ onSend, onSendMessage, isLoading, disabled }) {
+export default function ChatInput({ 
+  onSend, 
+  onSendMessage, 
+  isLoading, 
+  disabled, 
+  injectedPrompt, 
+  clearInjectedPrompt 
+}) {
   const [message, setMessage] = useState("");
   const [image, setImage] = useState(null);
+  const [docAttachment, setDocAttachment] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const fileInputRef = useRef(null);
   const textareaRef = useRef(null);
@@ -12,14 +20,32 @@ export default function ChatInput({ onSend, onSendMessage, isLoading, disabled }
   const handleSend = onSend || onSendMessage;
   const isBusy = isLoading || disabled;
 
+  useEffect(() => {
+    if (injectedPrompt) {
+      setMessage(injectedPrompt);
+      if (clearInjectedPrompt) clearInjectedPrompt();
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    }
+  }, [injectedPrompt, clearInjectedPrompt]);
+
   const handleSubmit = (e) => {
     e?.preventDefault();
-    if ((!message.trim() && !image) || isBusy) return;
+    if ((!message.trim() && !image && !docAttachment) || isBusy) return;
+
+    let fullMessage = message.trim();
+    if (docAttachment) {
+      const docHeader = `📄 **Attached File (${docAttachment.name})**:\n\`\`\`\n${docAttachment.content}\n\`\`\``;
+      fullMessage = fullMessage ? `${fullMessage}\n\n${docHeader}` : docHeader;
+    }
+
     if (handleSend) {
-      handleSend(message, image);
+      handleSend(fullMessage, image);
     }
     setMessage("");
     setImage(null);
+    setDocAttachment(null);
     if (textareaRef.current) {
       textareaRef.current.style.height = "70px";
     }
@@ -32,23 +58,40 @@ export default function ChatInput({ onSend, onSendMessage, isLoading, disabled }
     }
   };
 
-  const handleImageUpload = (e) => {
+  const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file");
+    if (file.type.startsWith("image/")) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image must be less than 5MB");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => setImage(reader.result);
+      reader.readAsDataURL(file);
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be less than 5MB");
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Document file must be under 2MB");
       return;
     }
 
     const reader = new FileReader();
-    reader.onloadend = () => setImage(reader.result);
-    reader.readAsDataURL(file);
+    reader.onload = (evt) => {
+      const text = evt.target?.result || "";
+      setDocAttachment({
+        name: file.name,
+        size: (file.size / 1024).toFixed(1) + " KB",
+        content: text,
+      });
+      toast.success(`Attached ${file.name}`);
+    };
+    reader.onerror = () => {
+      toast.error("Failed to read document file");
+    };
+    reader.readAsText(file);
   };
 
   const toggleVoice = () => {
@@ -102,6 +145,27 @@ export default function ChatInput({ onSend, onSendMessage, isLoading, disabled }
           </div>
         )}
 
+        {/* Attachment Document Badge */}
+        {docAttachment && (
+          <div className="px-4 pt-3 relative inline-block">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[var(--bg-sidebar)] border border-[var(--border-medium)] text-xs text-[var(--text-primary)] shadow-sm">
+              <FileText className="w-4 h-4 text-[#818cf8]" />
+              <div className="flex flex-col">
+                <span className="font-semibold text-xs truncate max-w-[220px]">{docAttachment.name}</span>
+                <span className="text-[10px] text-[var(--text-muted)]">{docAttachment.size}</span>
+              </div>
+              <button
+                onClick={() => setDocAttachment(null)}
+                title="Remove document attachment"
+                aria-label="Remove document attachment"
+                className="p-1 rounded-full text-[var(--text-muted)] hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors ml-1 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Text Input Area */}
         <textarea
           ref={textareaRef}
@@ -124,15 +188,15 @@ export default function ChatInput({ onSend, onSendMessage, isLoading, disabled }
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
+              accept="image/*,.pdf,.txt,.json,.md,.log,.yaml,.yml,.csv"
+              onChange={handleFileUpload}
               className="hidden"
             />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              title="Attach image for analysis"
-              aria-label="Attach image for analysis"
+              title="Attach image or document file (.pdf, .txt, .json, .md, .log, .yaml)"
+              aria-label="Attach file"
               className="btn-pill-base btn-pill-icon"
             >
               <Paperclip className="w-4 h-4" />
@@ -160,7 +224,7 @@ export default function ChatInput({ onSend, onSendMessage, isLoading, disabled }
               onClick={handleSubmit}
               title="Send message (Enter)"
               aria-label="Send message"
-              disabled={isBusy || (!message.trim() && !image)}
+              disabled={isBusy || (!message.trim() && !image && !docAttachment)}
               className="btn-pill-base btn-pill-primary !w-8 !h-8 !p-0"
             >
               <Send className={`w-3.5 h-3.5 ${isBusy ? "animate-pulse" : ""}`} />

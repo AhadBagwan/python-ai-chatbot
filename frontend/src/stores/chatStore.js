@@ -65,6 +65,16 @@ const useChatStore = create(
         set({ chats: [], activeChatId: null });
       },
 
+      importBackup: (chats) => {
+        if (Array.isArray(chats) && chats.length > 0) {
+          set({
+            chats,
+            activeChatId: chats[0].id,
+            error: null,
+          });
+        }
+      },
+
       updateChatTitle: (chatId, title) => {
         set(state => ({
           chats: state.chats.map(chat =>

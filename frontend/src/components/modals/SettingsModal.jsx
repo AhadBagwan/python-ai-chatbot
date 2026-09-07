@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { X, Moon, Sun, Volume2, VolumeX, Trash2, Sparkles, Cpu, Sliders, CheckCircle2, Shield, Brain, Palette } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { X, Moon, Sun, Volume2, VolumeX, Trash2, Sparkles, Cpu, Sliders, CheckCircle2, Shield, Brain, Palette, Download, Upload, Database } from "lucide-react";
 import useSettingsStore from "../../stores/settingsStore";
 import useThemeStore, { THEME_PRESETS } from "../../stores/themeStore";
 import useChatStore from "../../stores/chatStore";
@@ -15,6 +15,7 @@ const MODE_ICON_MAP = {
 export default function SettingsModal({ onClose }) {
   const [activeTab, setActiveTab] = useState("models");
   const [voices, setVoices] = useState([]);
+  const restoreInputRef = useRef(null);
 
   const { 
     theme, 
@@ -29,7 +30,7 @@ export default function SettingsModal({ onClose }) {
     setSelectedVoice
   } = useSettingsStore();
   const { themePreset, setThemePreset } = useThemeStore();
-  const { clearAllChats } = useChatStore();
+  const { chats, clearAllChats, importBackup } = useChatStore();
 
   useEffect(() => {
     const loadVoices = () => {
@@ -49,6 +50,58 @@ export default function SettingsModal({ onClose }) {
       clearAllChats();
       toast.success("All chat history cleared");
     }
+  };
+
+  const handleExportBackup = () => {
+    try {
+      const backupData = {
+        app: "AhadNova AI",
+        version: "1.0.0",
+        timestamp: new Date().toISOString(),
+        settings: {
+          model,
+          explanationMode,
+          theme,
+          themePreset,
+        },
+        chats,
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+      const downloadAnchor = document.createElement("a");
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `ahadnova-ai-backup-${new Date().toISOString().slice(0, 10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      toast.success("Backup downloaded successfully!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to export backup data");
+    }
+  };
+
+  const handleImportBackup = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const parsed = JSON.parse(evt.target.result);
+        if (parsed.chats && Array.isArray(parsed.chats)) {
+          importBackup(parsed.chats);
+          if (parsed.settings?.themePreset) setThemePreset(parsed.settings.themePreset);
+          toast.success(`Restored ${parsed.chats.length} chat sessions successfully!`);
+        } else {
+          toast.error("Invalid backup file format");
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to parse JSON backup file");
+      }
+    };
+    reader.readAsText(file);
   };
 
   return (
@@ -309,6 +362,45 @@ export default function SettingsModal({ onClose }) {
                 >
                   <div className={`w-4 h-4 rounded-full bg-white transition-transform ${soundEnabled ? "translate-x-5" : ""}`} />
                 </button>
+              </div>
+
+              {/* Data Backup & Restore Card */}
+              <div className="p-3.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-subtle)] space-y-3">
+                <div className="flex items-center gap-2">
+                  <Database className="w-4 h-4 text-[#818cf8]" />
+                  <div>
+                    <p className="text-xs font-bold text-[var(--text-primary)]">Data Backup & Migration</p>
+                    <p className="text-[11px] text-[var(--text-secondary)]">Export or restore chat sessions and system configuration as JSON</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleExportBackup}
+                    className="btn-pill-base btn-pill-secondary flex-1"
+                    title="Export all chat history to JSON file"
+                  >
+                    <Download className="w-3.5 h-3.5 text-[#34d399]" />
+                    <span>Export Backup (.json)</span>
+                  </button>
+
+                  <input
+                    ref={restoreInputRef}
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportBackup}
+                    className="hidden"
+                  />
+
+                  <button
+                    onClick={() => restoreInputRef.current?.click()}
+                    className="btn-pill-base btn-pill-secondary flex-1"
+                    title="Restore chat history from JSON file"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-[#38bdf8]" />
+                    <span>Restore Backup</span>
+                  </button>
+                </div>
               </div>
 
               {/* Developer Profile Links */}

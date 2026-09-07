@@ -147,3 +147,66 @@ class HealthResponse(BaseModel):
     version: str
     gemini_configured: bool
 
+
+# Log Audit Schemas
+class LogAnomalyItem(BaseModel):
+    type: str
+    severity: Literal["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+    source_ip: Optional[str] = None
+    count: Optional[int] = None
+    details: str
+    remediation: str
+
+class LogAuditRequest(BaseModel):
+    log_content: str = Field(..., min_length=5, description="Raw log text to analyze")
+    log_type: str = Field(default="syslog", description="Type of log (auth.log, nginx, syslog, firewall)")
+
+class LogAuditResponse(BaseModel):
+    summary: str
+    threat_level: Literal["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+    threat_score: int
+    anomalies: List[LogAnomalyItem]
+    top_ips: List[str]
+    recommendations: List[str]
+    processing_time: float
+
+
+# DevOps Audit Schemas
+class DevOpsIssueItem(BaseModel):
+    cwe: str
+    title: str
+    severity: Literal["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+    rule: str
+    description: str
+    fix: str
+
+class DevOpsAuditRequest(BaseModel):
+    manifest_content: str = Field(..., min_length=5, description="Dockerfile or Kubernetes YAML manifest")
+    file_type: str = Field(default="dockerfile", description="File type: dockerfile or k8s")
+
+class DevOpsAuditResponse(BaseModel):
+    summary: str
+    compliance_score: int
+    security_issues: List[DevOpsIssueItem]
+    remediated_manifest: str
+    processing_time: float
+
+
+# Nmap Builder Schemas
+class NmapFlagItem(BaseModel):
+    flag: str
+    meaning: str
+
+class NmapRequest(BaseModel):
+    target: str = Field(default="192.168.1.1", description="Target IP or subnet CIDR or domain")
+    scan_type: str = Field(default="stealth", description="Scan profile (stealth, intense, udp, vuln, os)")
+    custom_ports: Optional[str] = Field(default=None, description="Custom port range (e.g. 80,443,8080 or 1-65535)")
+
+class NmapResponse(BaseModel):
+    command: str
+    explanation: str
+    breakdown: List[NmapFlagItem]
+    safety_note: str
+    processing_time: float
+
+

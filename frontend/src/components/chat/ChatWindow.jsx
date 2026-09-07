@@ -8,7 +8,7 @@ import useSettingsStore from "../../stores/settingsStore";
 import { chatAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 
-export default function ChatWindow() {
+export default function ChatWindow({ injectedPrompt, clearInjectedPrompt }) {
   const messagesEndRef = useRef(null);
   const scrollContainerRef = useRef(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
@@ -131,7 +131,12 @@ export default function ChatWindow() {
       )}
 
       {/* Floating Prompt Composer */}
-      <ChatInput onSend={sendMessage} disabled={isLoading} />
+      <ChatInput 
+        onSend={sendMessage} 
+        disabled={isLoading} 
+        injectedPrompt={injectedPrompt} 
+        clearInjectedPrompt={clearInjectedPrompt} 
+      />
     </div>
   );
 }

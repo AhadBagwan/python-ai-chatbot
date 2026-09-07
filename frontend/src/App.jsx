@@ -10,6 +10,7 @@ import "./index.css";
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [injectedPromptText, setInjectedPromptText] = useState("");
   const { theme } = useSettingsStore();
   const { themePreset } = useThemeStore();
 
@@ -39,9 +40,15 @@ function App() {
 
         {/* Main Content */}
         <div className="main-content">
-          <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+          <Header 
+            onMenuClick={() => setSidebarOpen(!sidebarOpen)} 
+            onSelectPrompt={(text) => setInjectedPromptText(text)}
+          />
           <main className="chat-area">
-            <ChatWindow />
+            <ChatWindow 
+              injectedPrompt={injectedPromptText} 
+              clearInjectedPrompt={() => setInjectedPromptText("")} 
+            />
           </main>
         </div>
 

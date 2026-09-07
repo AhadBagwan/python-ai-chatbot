@@ -35,7 +35,7 @@ export function speakText(text, selectedVoiceURI, onEnd, onError) {
   }
 
   try {
-    // Force cancel any ongoing or frozen speech engine queue
+    // 1. Force cancel & clear any queued speech
     window.speechSynthesis.cancel();
     if (window.speechSynthesis.paused) {
       window.speechSynthesis.resume();
@@ -51,13 +51,19 @@ export function speakText(text, selectedVoiceURI, onEnd, onError) {
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
     utterance.volume = 1.0;
+    utterance.lang = "en-US";
 
-    // Load available voices
+    // 2. Safely bind voice if selected & available
     const voices = window.speechSynthesis.getVoices();
     if (selectedVoiceURI && voices.length > 0) {
       const match = voices.find(v => v.voiceURI === selectedVoiceURI || v.name === selectedVoiceURI);
       if (match) {
-        utterance.voice = match;
+        try {
+          utterance.voice = match;
+          if (match.lang) utterance.lang = match.lang;
+        } catch (e) {
+          console.warn("Could not set custom voice, fallback to default", e);
+        }
       }
     }
 
@@ -66,12 +72,17 @@ export function speakText(text, selectedVoiceURI, onEnd, onError) {
     };
 
     utterance.onerror = (e) => {
-      console.error("SpeechSynthesisUtterance error:", e);
+      if (e.error !== "canceled" && e.error !== "interrupted") {
+        console.warn("SpeechSynthesisUtterance notice:", e);
+      }
       if (onError) onError(e);
     };
 
-    // Trigger synthesis
-    window.speechSynthesis.speak(utterance);
+    // 3. Play audio after a tiny delay to ensure Chrome clears previous audio locks
+    setTimeout(() => {
+      window.speechSynthesis.speak(utterance);
+    }, 50);
+
     return true;
   } catch (err) {
     console.error("TTS execution error:", err);

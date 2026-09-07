@@ -132,6 +132,24 @@ export const chatAPI = {
     const { data } = await api.post("/chat/quiz", { topic, difficulty, num_questions });
     return data;
   },
+
+  // Log Intrusion & Anomaly Analysis
+  async analyzeLog(logContent, logType = "syslog") {
+    const { data } = await api.post("/chat/analyze-log", { log_content: logContent, log_type: logType });
+    return data;
+  },
+
+  // Docker & Kubernetes DevOps Security Audit
+  async auditDevOps(manifestContent, fileType = "dockerfile") {
+    const { data } = await api.post("/chat/audit-devops", { manifest_content: manifestContent, file_type: fileType });
+    return data;
+  },
+
+  // Nmap Command Generator
+  async generateNmap(target, scanType = "stealth", customPorts = null) {
+    const { data } = await api.post("/chat/generate-nmap", { target, scan_type: scanType, custom_ports: customPorts });
+    return data;
+  },
 };
 
 export const healthAPI = {
